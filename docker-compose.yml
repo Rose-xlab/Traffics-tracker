@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  nextjs:
+    build:
+      context: ./
+      dockerfile: Dockerfile.nextjs
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - data-service
+    networks:
+      - tariffs-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  data-service:
+    build:
+      context: ./tariffs-data-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+      - "9090:9090" # Prometheus metrics
+    env_file:
+      - ./tariffs-data-service/.env
+    depends_on:
+      - redis
+    networks:
+      - tariffs-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    volumes:
+      - data-service-logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - tariffs-network
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    command: >
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - tariffs-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 512M
+
+  grafana:
+    image: grafana/grafana:9.5.2
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    networks:
+      - tariffs-network
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+
+networks:
+  tariffs-network:
+    driver: bridge
+
+volumes:
+  data-service-logs:
+  redis-data:
+  prometheus-data:
+  grafana-data:
