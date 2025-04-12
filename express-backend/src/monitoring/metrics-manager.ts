@@ -1,7 +1,7 @@
-import { register, Counter, Gauge, Histogram } from 'prom-client';
-import { createLogger } from '../utils/logger';
+import { register, Counter, Gauge, Histogram, collectDefaultMetrics } from 'prom-client';
+import logger, { createLogger } from '../utils/logger';
 
-const logger = createLogger('metrics-manager');
+const loga = createLogger('metrics-manager', logger);
 
 // Initialize metrics
 export const metrics = {
@@ -104,13 +104,12 @@ export function initializeMetrics() {
   });
 
   // Collect default metrics (GC, memory, etc.)
-  const collectDefaultMetrics = register.collectDefaultMetrics;
   collectDefaultMetrics({ prefix: 'tariffs_' });
 
   // Setup periodic system metrics collection
   setupSystemMetricsCollection();
 
-  logger.info('Metrics initialized');
+  loga.info('Metrics initialized');
 }
 
 /**

@@ -1,7 +1,7 @@
 // src/utils/env-validator.ts
-import { createLogger } from './logger';
+import logger, { createLogger } from './logger';
 
-const logger = createLogger('env-validator');
+const loga = createLogger('env-validator',logger);
 
 type EnvVar = {
   key: string;
@@ -42,11 +42,11 @@ export class EnvValidator {
   }
 
   private logMissingVars(): void {
-    logger.error('Missing required environment variables:');
+    loga.error('Missing required environment variables:');
     this.missingVars.forEach(key => {
-      logger.error(`- ${key}`);
+      loga.error(`- ${key}`);
     });
-    logger.error('Please check your .env file. See .env.example for required variables.');
+    loga.error('Please check your .env file. See .env.example for required variables.');
   }
 
   /**
@@ -62,7 +62,7 @@ export class EnvValidator {
       if (defaultValue !== undefined) {
         return defaultValue;
       }
-      logger.warn(`Environment variable ${key} is not defined`);
+      loga.warn(`Environment variable ${key} is not defined`);
       return '';
     }
     
@@ -121,9 +121,7 @@ export function validateEnv(): boolean {
 // Validate Express specific environment variables
 export function validateExpressEnv(): boolean {
   // For Express, we only need to validate a subset of the variables
-  const expressEnvVars = allEnvVars.filter(envVar => 
-    envVar.key !== 'AI_FEATURES_ENABLED' || 
-    (envVar.key === 'OPENAI_API_KEY' && process.env.AI_FEATURES_ENABLED === 'true')
+  const expressEnvVars = allEnvVars.filter(envVar =>  envVar.key === 'AI_FEATURES_ENABLED' || (envVar.key === 'OPENAI_API_KEY' && process.env.AI_FEATURES_ENABLED === 'true')
   );
   
   const validator = new EnvValidator(expressEnvVars);

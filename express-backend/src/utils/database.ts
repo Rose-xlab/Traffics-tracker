@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { Pool } from 'pg';
 import config from '../config';
-import { createLogger } from './logger';
+import logger, { createLogger } from './logger';
 
-const logger = createLogger('database');
+const loga = createLogger('database', logger);
 
 if (!config.database.url || !config.database.key) {
-  logger.error('Missing Supabase credentials in environment variables');
+  loga.error('Missing Supabase credentials in environment variables');
   process.exit(1);
 }
 
@@ -70,7 +70,7 @@ export async function healthCheck() {
     
     return true;
   } catch (error) {
-    logger.error('Database health check failed', error as Error);
+    loga.error('Database health check failed', error as Error);
     return false;
   }
 }

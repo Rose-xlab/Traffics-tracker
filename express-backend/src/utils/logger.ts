@@ -33,26 +33,38 @@ const logger = winston.createLogger({
   ]
 });
 
-export function createLogger(context: string) {
+
+
+
+export function createLogger(context: string,logger:winston.Logger) {
+
   return {
     debug: (message: string, meta: object = {}) => {
-      logger.debug(message, { context, ...meta });
+      // logger.debug(message, { context, ...meta });
+      console.log(message,meta,"--------DEBUG------------")
     },
     info: (message: string, meta: object = {}) => {
-      logger.info(message, { context, ...meta });
+      // logger.info(message, { context, ...meta });
+      console.log(message,meta,"--------INFO------------")
+
     },
     warn: (message: string, meta: object = {}) => {
-      logger.warn(message, { context, ...meta });
+      // logger.warn(message, { context, ...meta });
+      console.log(message,meta,"--------WARN------------")
+
     },
     error: (message: string, error?: Error, meta: object = {}) => {
-      logger.error(message, { 
-        context, 
-        ...meta,
-        ...(error && { 
-          errorMessage: error.message,
-          stack: error.stack
-        })
-      });
+      // logger.error(message, { 
+      //   context, 
+      //   ...meta,
+      //   ...(error && { 
+      //     errorMessage: error.message,
+      //     stack: error.stack
+      //   })
+      // });
+
+      console.log(message,meta,"--------ERROR------------")
+
     }
   };
 }

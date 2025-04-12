@@ -45,6 +45,7 @@ export default {
       model: get('OPENAI_MODEL', 'gpt-4o'),
       temperature: parseFloat(get('OPENAI_TEMPERATURE', '0.2')),
       maxTokens: parseInt(get('OPENAI_MAX_TOKENS', '1000')),
+      trackUsage: true
     }
   },
   sync: {

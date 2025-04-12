@@ -1,7 +1,7 @@
 import NodeCache from 'node-cache';
-import { createLogger } from './logger';
+import logger, { createLogger } from './logger';
 
-const logger = createLogger('cache');
+const loga = createLogger('cache', logger);
 
 class Cache {
   private cache: NodeCache;
@@ -14,7 +14,7 @@ class Cache {
     });
     
     this.cache.on('expired', (key, value) => {
-      logger.debug(`Cache key expired: ${key}`);
+      loga.debug(`Cache key expired: ${key}`);
     });
   }
   
@@ -23,7 +23,7 @@ class Cache {
   }
   
   set<T>(key: string, value: T, ttl?: number): boolean {
-    return this.cache.set<T>(key, value, ttl);
+    return this.cache.set<T>(key, value, ttl as any);
   }
   
   delete(key: string): number {

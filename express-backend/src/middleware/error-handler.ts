@@ -1,10 +1,10 @@
 // express-backend/src/middleware/error-handler.ts
 import { Request, Response, NextFunction } from 'express';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { sendAlert } from '../monitoring/alerting-service';
 import { metrics } from '../monitoring/metrics-manager';
 
-const logger = createLogger('error-handler');
+const loga = createLogger('error-handler', logger);
 
 /**
  * Custom API Error class
@@ -25,6 +25,8 @@ export class ApiError extends Error {
  * Central error handler middleware
  */
 export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
+
+  const {id} = req.body
   let statusCode = 500;
   let errorCode = 'INTERNAL_ERROR';
   let errorMessage = 'Internal Server Error';
@@ -53,7 +55,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
     errorMessage = 'Unauthorized access';
   } else {
     // Log unknown errors with stack trace
-    logger.error(`Unhandled error: ${err.message}`, err);
+    loga.error(`Unhandled error: ${err.message}`, err);
     
     // Send alert for unhandled errors
     sendAlert({
@@ -87,7 +89,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
     },
     metadata: {
       timestamp: new Date().toISOString(),
-      requestId: req.id,
+      requestId:id,
       path: req.path,
       method: req.method
     }
@@ -98,6 +100,8 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
  * Error handler for 404 Not Found
  */
 export function notFoundHandler(req: Request, res: Response) {
+
+  const {id} = req.body
   res.status(404).json({
     success: false,
     error: {
@@ -106,7 +110,7 @@ export function notFoundHandler(req: Request, res: Response) {
     },
     metadata: {
       timestamp: new Date().toISOString(),
-      requestId: req.id,
+      requestId:id,
       path: req.path,
       method: req.method
     }

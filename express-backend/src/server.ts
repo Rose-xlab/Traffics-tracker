@@ -3,10 +3,10 @@ import express from 'express';
 import cors from 'cors';
 import { json } from 'body-parser';
 import { v4 as uuidv4 } from 'uuid';
-import { createLogger } from './utils/logger';
+import logger, { createLogger } from './utils/logger';
 import { healthCheck, closeConnections } from './utils/database';
-import { startAllJobs, stopAllJobs, closeJobQueues } from './queue/job-queues';
-import { initializeJobProcessors, scheduleRecurringJobs } from './queue/job-queues';
+// import { startAllJobs, stopAllJobs, closeJobQueues } from './queue/job-queues';
+// import { initializeJobProcessors, scheduleRecurringJobs } from './queue/job-queues';
 import { initializeMetrics, getMetrics } from './monitoring/metrics-manager';
 import { metricsMiddleware } from './monitoring/metrics-middleware';
 import { sendAlert } from './monitoring/alerting-service';
@@ -17,14 +17,15 @@ import syncRoutes from './routes/sync';
 import statusRoutes from './routes/status';
 import { createBullBoard } from './admin/bull-board';
 
-const logger = createLogger('server');
+const loga = createLogger('server',logger);
 const app = express();
 const port = config.server.port;
 
 // Request ID middleware - add unique ID to each request
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
-  req.id = uuidv4();
-  res.setHeader('X-Request-ID', req.id);
+
+  const _uuid = uuidv4();
+  res.setHeader('X-Request-ID',_uuid);
   next();
 });
 
@@ -36,8 +37,8 @@ app.use(json());
 app.use(metricsMiddleware());
 
 // Logging middleware
-app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.path}`, { requestId: req.id });
+app.use((req:any, res, next) => {
+  loga.info(`${req.method} ${req.path}`, { requestId: req.id });
   next();
 });
 
@@ -64,10 +65,11 @@ app.get('/health', async (req, res) => {
       },
       timestamp: new Date().toISOString(),
       version: process.env.npm_package_version || '1.0.0',
-      environment: config.server.env
+      environment: config.server.env,
+      name:"frank"
     });
   } catch (error) {
-    logger.error('Health check failed', error as Error);
+    loga.error('Health check failed', error as Error);
     
     res.status(500).json({
       status: 'error',
@@ -84,7 +86,7 @@ app.get('/metrics', async (req, res) => {
     res.set('Content-Type', 'text/plain');
     res.send(metrics);
   } catch (error) {
-    logger.error('Error generating metrics', error as Error);
+    loga.error('Error generating metrics', error as Error);
     res.status(500).send('Error generating metrics');
   }
 });
@@ -124,14 +126,14 @@ function getCircuitStatus() {
 initializeMetrics();
 
 // Initialize job processors
-initializeJobProcessors();
+// initializeJobProcessors();
 
 // Start server
 const server = app.listen(port, () => {
-  logger.info(`Tariffs data service running on port ${port}`);
+  loga.info(`Tariffs data service running on port ${port}`);
   
   // Schedule recurring jobs
-  scheduleRecurringJobs();
+  // scheduleRecurringJobs();
   
   // Send startup alert
   sendAlert({
@@ -168,7 +170,7 @@ process.on('uncaughtException', (error) => {
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled rejection', reason as Error);
+  loga.error('Unhandled rejection', reason as Error);
   
   sendAlert({
     severity: 'critical',
@@ -182,7 +184,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 async function gracefulShutdown() {
-  logger.info('Shutting down gracefully...');
+  loga.info('Shutting down gracefully...');
   
   // Send shutdown alert
   await sendAlert({
@@ -193,21 +195,21 @@ async function gracefulShutdown() {
   });
   
   // Stop scheduled jobs and close queues
-  stopAllJobs();
-  await closeJobQueues();
+  // stopAllJobs();
+  // await closeJobQueues();
   
   // Close database connections
   await closeConnections();
   
   // Close server
   server.close(() => {
-    logger.info('Server shutdown complete');
+    loga.info('Server shutdown complete');
     process.exit(0);
   });
   
   // Force exit after 10 seconds if still hanging
   setTimeout(() => {
-    logger.error('Forced shutdown after timeout');
+    loga.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 }

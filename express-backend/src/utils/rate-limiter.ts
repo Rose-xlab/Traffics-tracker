@@ -1,6 +1,6 @@
-import { createLogger } from './logger';
+import logger, { createLogger } from './logger';
 
-const logger = createLogger('rate-limiter');
+const loga = createLogger('rate-limiter', logger);
 
 interface RateLimiterOptions {
   windowMs: number;
@@ -21,7 +21,7 @@ export class RateLimiter {
   async throttle(key: string): Promise<void> {
     if (this.shouldThrottle(key)) {
       const delay = this.calculateDelay(key);
-      logger.debug(`Throttling request for key ${key}, delaying ${delay}ms`);
+      loga.debug(`Throttling request for key ${key}, delaying ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
     

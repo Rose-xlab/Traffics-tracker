@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { apiCache } from '../utils/cache';
 import { usitcRateLimiter } from '../utils/rate-limiter';
 import { createCircuitBreaker, createCacheFallback } from '../utils/circuit-breaker';
@@ -7,7 +7,7 @@ import { metrics } from '../monitoring/metrics-manager';
 import config from '../config';
 import { HTSChapter, HTSRate } from './types';
 
-const logger = createLogger('usitc-api');
+const loga = createLogger('usitc-api', logger);
 const CACHE_KEY_PREFIX = 'usitc';
 const BASE_URL = config.apis.usitc.baseUrl;
 
@@ -15,7 +15,7 @@ const BASE_URL = config.apis.usitc.baseUrl;
 const usitcBreaker = createCircuitBreaker(
   'usitc-api',
   async (endpoint: string, params?: any) => {
-    logger.debug(`Making USITC API request to ${endpoint}`);
+    loga.debug(`Making USITC API request to ${endpoint}`);
     
     // Start timing
     const startTime = process.hrtime();
@@ -50,12 +50,12 @@ export async function getHtsChapter(chapter: string): Promise<HTSChapter> {
   const cachedData = apiCache.get<HTSChapter>(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for HTS chapter ${chapter}`);
+    loga.debug(`Cache hit for HTS chapter ${chapter}`);
     return cachedData;
   }
 
   try {
-    logger.info(`Fetching HTS chapter ${chapter}`);
+    loga.info(`Fetching HTS chapter ${chapter}`);
     
     // Apply rate limiting
     await usitcRateLimiter.throttle('chapter');
@@ -85,7 +85,7 @@ export async function getHtsChapter(chapter: string): Promise<HTSChapter> {
     apiCache.set(cacheKey, data, 3600); // Cache for 1 hour
     return data;
   } catch (error) {
-    logger.error(`Error fetching HTS chapter ${chapter}`, error as Error);
+    loga.error(`Error fetching HTS chapter ${chapter}`, error as Error);
     throw error;
   }
 }
@@ -98,12 +98,12 @@ export async function searchHtsCodes(query: string): Promise<HTSRate[]> {
   const cachedData = apiCache.get<HTSRate[]>(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for HTS search "${query}"`);
+    loga.debug(`Cache hit for HTS search "${query}"`);
     return cachedData;
   }
 
   try {
-    logger.info(`Searching HTS codes for "${query}"`);
+    loga.info(`Searching HTS codes for "${query}"`);
     
     // Apply rate limiting
     await usitcRateLimiter.throttle('search');
@@ -129,7 +129,7 @@ export async function searchHtsCodes(query: string): Promise<HTSRate[]> {
     apiCache.set(cacheKey, data, 1800); // Cache for 30 minutes
     return data;
   } catch (error) {
-    logger.error(`Error searching HTS codes for "${query}"`, error as Error);
+    loga.error(`Error searching HTS codes for "${query}"`, error as Error);
     throw error;
   }
 }
@@ -142,12 +142,12 @@ export async function getGeneralRates(htsCode: string): Promise<HTSRate> {
   const cachedData = apiCache.get<HTSRate>(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for HTS rates ${htsCode}`);
+    loga.debug(`Cache hit for HTS rates ${htsCode}`);
     return cachedData;
   }
 
   try {
-    logger.info(`Fetching rates for HTS code ${htsCode}`);
+    loga.info(`Fetching rates for HTS code ${htsCode}`);
     
     // Apply rate limiting
     await usitcRateLimiter.throttle('rates');
@@ -175,7 +175,7 @@ export async function getGeneralRates(htsCode: string): Promise<HTSRate> {
     apiCache.set(cacheKey, response.data, 3600); // Cache for 1 hour
     return response.data;
   } catch (error) {
-    logger.error(`Error fetching rates for HTS code ${htsCode}`, error as Error);
+    loga.error(`Error fetching rates for HTS code ${htsCode}`, error as Error);
     throw error;
   }
 }

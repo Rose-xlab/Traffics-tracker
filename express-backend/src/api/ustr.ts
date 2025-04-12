@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { apiCache } from '../utils/cache';
 import { ustrRateLimiter } from '../utils/rate-limiter';
 import config from '../config';
 import { Section301Tariff, Exclusion, TradeAgreement } from './types';
 
-const logger = createLogger('ustr-api');
+const loga = createLogger('ustr-api', logger);
 const CACHE_KEY_PREFIX = 'ustr';
 const BASE_URL = config.apis.ustr.baseUrl;
 
@@ -40,7 +40,7 @@ export async function getSection301Tariffs(): Promise<Section301Tariff[]> {
     apiCache.set(cacheKey, data, 3600 * 12); // Cache for 12 hours
     return data;
   } catch (error) {
-    logger.error('Error fetching Section 301 tariffs', error as Error);
+    loga.error('Error fetching Section 301 tariffs', error as Error);
     throw error;
   }
 }
@@ -53,12 +53,12 @@ export async function getExclusions(htsCode: string): Promise<Exclusion[]> {
   const cachedData = apiCache.get<Exclusion[]>(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for exclusions ${htsCode}`);
+    loga.debug(`Cache hit for exclusions ${htsCode}`);
     return cachedData;
   }
 
   try {
-    logger.info(`Fetching exclusions for HTS code ${htsCode}`);
+    loga.info(`Fetching exclusions for HTS code ${htsCode}`);
     
     // Apply rate limiting
     await ustrRateLimiter.throttle('exclusions');
@@ -76,7 +76,7 @@ export async function getExclusions(htsCode: string): Promise<Exclusion[]> {
     apiCache.set(cacheKey, data, 3600 * 12); // Cache for 12 hours
     return data;
   } catch (error) {
-    logger.error(`Error fetching exclusions for HTS code ${htsCode}`, error as Error);
+    loga.error(`Error fetching exclusions for HTS code ${htsCode}`, error as Error);
     throw error;
   }
 }
@@ -89,12 +89,12 @@ export async function getTradeAgreements(): Promise<TradeAgreement[]> {
   const cachedData = apiCache.get<TradeAgreement[]>(cacheKey);
   
   if (cachedData) {
-    logger.debug('Cache hit for trade agreements');
+    loga.debug('Cache hit for trade agreements');
     return cachedData;
   }
 
   try {
-    logger.info('Fetching trade agreements');
+    loga.info('Fetching trade agreements');
     
     // Apply rate limiting
     await ustrRateLimiter.throttle('agreements');
@@ -112,7 +112,7 @@ export async function getTradeAgreements(): Promise<TradeAgreement[]> {
     apiCache.set(cacheKey, data, 3600 * 24); // Cache for 24 hours
     return data;
   } catch (error) {
-    logger.error('Error fetching trade agreements', error as Error);
+    loga.error('Error fetching trade agreements', error as Error);
     throw error;
   }
 }

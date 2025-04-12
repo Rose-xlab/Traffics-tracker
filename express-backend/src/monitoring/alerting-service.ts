@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 
-const logger = createLogger('alerting-service');
+const loga = createLogger('alerting-service',logger);
 
 // Types of alert severities
 export type AlertSeverity = 'info' | 'warning' | 'error' | 'critical';
@@ -30,12 +30,12 @@ const config = {
 export async function sendAlert(alertInfo: AlertInfo): Promise<void> {
   // Skip if alerts are disabled
   if (!config.enabled) {
-    logger.info(`Alert would be sent (disabled): ${alertInfo.title}`);
+    loga.info(`Alert would be sent (disabled): ${alertInfo.title}`);
     return;
   }
 
   try {
-    logger.info(`Sending alert: ${alertInfo.severity} - ${alertInfo.title}`);
+    loga.info(`Sending alert: ${alertInfo.severity} - ${alertInfo.title}`);
     
     // Create promises for each alert channel
     const promises: Promise<any>[] = [];
@@ -54,7 +54,7 @@ export async function sendAlert(alertInfo: AlertInfo): Promise<void> {
     // Wait for all alert channels to complete
     await Promise.all(promises);
   } catch (error) {
-    logger.error('Failed to send alert', error);
+    loga.error('Failed to send alert', error as any);
     // We don't want to throw here as alerting shouldn't break the main application
   }
 }
@@ -67,14 +67,14 @@ function logAlert(alertInfo: AlertInfo): void {
   
   switch (severity) {
     case 'info':
-      logger.info(`ALERT [${component}]: ${title} - ${message}`, details);
+      loga.info(`ALERT [${component}]: ${title} - ${message}`, details);
       break;
     case 'warning':
-      logger.warn(`ALERT [${component}]: ${title} - ${message}`, details);
+      loga.warn(`ALERT [${component}]: ${title} - ${message}`, details);
       break;
     case 'error':
     case 'critical':
-      logger.error(`ALERT [${component}]: ${title} - ${message}`, details);
+      loga.error(`ALERT [${component}]: ${title} - ${message}`, details as any);
       break;
   }
 }
@@ -145,7 +145,7 @@ async function sendSlackAlert(alertInfo: AlertInfo): Promise<void> {
     await axios.post(config.slackWebhookUrl, payload);
     logger.info('Slack alert sent successfully');
   } catch (error) {
-    logger.error('Failed to send Slack alert', error);
+    logger.error('Failed to send Slack alert', error as any);
   }
 }
 

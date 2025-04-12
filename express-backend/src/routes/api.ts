@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { supabase } from '../utils/database';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 
 const router = Router();
-const logger = createLogger('api-routes');
+const loga = createLogger('api-routes', logger);
 
 /**
  * Get latest products
@@ -13,7 +13,7 @@ router.get('/products', async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 100;
     const page = parseInt(req.query.page as string) || 0;
     const offset = page * limit;
-    
+
     const query = supabase
       .from('products')
       .select('*')
@@ -42,7 +42,9 @@ router.get('/products', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching products', error as Error);
+    // console.error({  error });
+    loga.error('Error fetching products', error as Error);
+    
     res.status(500).json({
       error: 'Failed to fetch products',
       details: error instanceof Error ? error.message : undefined
@@ -75,7 +77,7 @@ router.get('/products/:id', async (req, res) => {
     
     res.json({ data });
   } catch (error) {
-    logger.error(`Error fetching product ${req.params.id}`, error as Error);
+    loga.error(`Error fetching product ${req.params.id}`, error as Error);
     res.status(500).json({
       error: 'Failed to fetch product',
       details: error instanceof Error ? error.message : undefined
@@ -99,7 +101,7 @@ router.get('/updates', async (req, res) => {
     
     res.json({ data });
   } catch (error) {
-    logger.error('Error fetching trade updates', error as Error);
+    loga.error('Error fetching trade updates', error as Error);
     res.status(500).json({
       error: 'Failed to fetch trade updates',
       details: error instanceof Error ? error.message : undefined
@@ -121,7 +123,7 @@ router.get('/countries', async (req, res) => {
     
     res.json({ data });
   } catch (error) {
-    logger.error('Error fetching countries', error as Error);
+    loga.error('Error fetching countries', error as Error);
     res.status(500).json({
       error: 'Failed to fetch countries',
       details: error instanceof Error ? error.message : undefined
@@ -150,7 +152,7 @@ router.get('/tariffs/:productId/:countryId', async (req, res) => {
     
     res.json({ data });
   } catch (error) {
-    logger.error(`Error fetching tariff data for product ${req.params.productId}, country ${req.params.countryId}`, error as Error);
+    loga.error(`Error fetching tariff data for product ${req.params.productId}, country ${req.params.countryId}`, error as Error);
     res.status(500).json({
       error: 'Failed to fetch tariff data',
       details: error instanceof Error ? error.message : undefined

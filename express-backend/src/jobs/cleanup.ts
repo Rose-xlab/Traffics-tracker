@@ -1,15 +1,15 @@
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { supabase } from '../utils/database';
 import { apiCache, cache, referenceCache } from '../utils/cache';
 
-const logger = createLogger('cleanup');
+const loga = createLogger('cleanup', logger);
 
 /**
  * Cleanup job to remove old data and cached items
  */
 export async function cleanupJob(): Promise<void> {
   try {
-    logger.info('Starting cleanup job');
+    loga.info('Starting cleanup job');
     
     // Clear expired cache items
     apiCache.flush();
@@ -17,7 +17,7 @@ export async function cleanupJob(): Promise<void> {
     
     // Keep reference cache longer, just log stats
     const referenceStats = referenceCache.stats();
-    logger.info(`Reference cache stats: ${JSON.stringify(referenceStats)}`);
+    loga.info(`Reference cache stats: ${JSON.stringify(referenceStats)}`);
     
     // Clean up old sync status records - keep last 100
     await cleanupSyncRecords();
@@ -28,9 +28,9 @@ export async function cleanupJob(): Promise<void> {
     // Clean up analytics events - keep last 30 days
     await cleanupAnalyticsEvents();
     
-    logger.info('Cleanup job completed successfully');
+    loga.info('Cleanup job completed successfully');
   } catch (error) {
-    logger.error('Error during cleanup job', error as Error);
+    loga.error('Error during cleanup job', error as Error);
     throw error;
   }
 }
@@ -40,7 +40,7 @@ export async function cleanupJob(): Promise<void> {
  */
 async function cleanupSyncRecords(): Promise<void> {
   try {
-    logger.info('Cleaning up old sync status records');
+    loga.info('Cleaning up old sync status records');
     
     // Get IDs of records to keep
     const { data: recordsToKeep, error: fetchError } = await supabase
@@ -52,7 +52,7 @@ async function cleanupSyncRecords(): Promise<void> {
     if (fetchError) throw fetchError;
     
     if (!recordsToKeep || recordsToKeep.length === 0) {
-      logger.info('No sync status records found, nothing to clean up');
+      loga.info('No sync status records found, nothing to clean up');
       return;
     }
     
@@ -65,9 +65,9 @@ async function cleanupSyncRecords(): Promise<void> {
       
     if (deleteError) throw deleteError;
     
-    logger.info('Successfully cleaned up old sync status records');
+    loga.info('Successfully cleaned up old sync status records');
   } catch (error) {
-    logger.error('Error cleaning up sync status records', error as Error);
+    loga.error('Error cleaning up sync status records', error as Error);
     throw error;
   }
 }
@@ -77,7 +77,7 @@ async function cleanupSyncRecords(): Promise<void> {
  */
 async function cleanupNotifications(): Promise<void> {
   try {
-    logger.info('Cleaning up old notifications');
+    loga.info('Cleaning up old notifications');
     
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 90);
@@ -89,9 +89,9 @@ async function cleanupNotifications(): Promise<void> {
       
     if (error) throw error;
     
-    logger.info('Successfully cleaned up old notifications');
+    loga.info('Successfully cleaned up old notifications');
   } catch (error) {
-    logger.error('Error cleaning up notifications', error as Error);
+    loga.error('Error cleaning up notifications', error as Error);
     throw error;
   }
 }
@@ -101,7 +101,7 @@ async function cleanupNotifications(): Promise<void> {
  */
 async function cleanupAnalyticsEvents(): Promise<void> {
   try {
-    logger.info('Cleaning up old analytics events');
+    loga.info('Cleaning up old analytics events');
     
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 30);
@@ -113,9 +113,9 @@ async function cleanupAnalyticsEvents(): Promise<void> {
       
     if (error) throw error;
     
-    logger.info('Successfully cleaned up old analytics events');
+    loga.info('Successfully cleaned up old analytics events');
   } catch (error) {
-    logger.error('Error cleaning up analytics events', error as Error);
+    loga.error('Error cleaning up analytics events', error as Error);
     throw error;
   }
 }

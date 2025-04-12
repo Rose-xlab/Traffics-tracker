@@ -1,17 +1,18 @@
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { getTariffNotices } from '../api/federal-register';
 import { processTradeUpdates } from '../services/data-aggregator';
-import { notifyAboutTradeUpdates } from '../services/notification-service';
+// import { notifyAboutTradeUpdates } from '../services/notification-service';
+import { notifyProductWatchers } from '../services/notification-service';
 import { supabase } from '../utils/database';
 
-const logger = createLogger('sync-updates');
+const loga = createLogger('sync-updates', logger);
 
 /**
  * Sync trade updates from Federal Register
  */
 export async function syncUpdates(): Promise<void> {
   try {
-    logger.info('Starting trade updates sync');
+    loga.info('Starting trade updates sync');
     
     // Create sync status record
     const { data: syncRecord, error: syncError } = await supabase
@@ -25,7 +26,7 @@ export async function syncUpdates(): Promise<void> {
       .single();
       
     if (syncError) {
-      logger.error('Failed to create sync status record', syncError);
+      loga.error('Failed to create sync status record', syncError);
     }
     
     const syncId = syncRecord?.id;
@@ -46,7 +47,7 @@ export async function syncUpdates(): Promise<void> {
     const existingRefs = new Set(existingUpdates.map(u => u.source_reference));
     const newNotices = notices.filter(notice => !existingRefs.has(notice.document_number));
     
-    logger.info(`Found ${newNotices.length} new trade updates`);
+    loga.info(`Found ${newNotices.length} new trade updates`);
     
     if (newNotices.length > 0) {
       // Process new notices
@@ -72,10 +73,10 @@ export async function syncUpdates(): Promise<void> {
         
         // Notify relevant users
         if (update) {
-          await notifyAboutTradeUpdates(update.id);
+          await notifyProductWatchers.notifyAboutTradeUpdates(update.id);
         }
         
-        logger.info(`Processed trade update: ${notice.document_number}`);
+        loga.info(`Processed trade update: ${notice.document_number}`);
       }
     }
     
@@ -90,9 +91,9 @@ export async function syncUpdates(): Promise<void> {
         .eq('id', syncId);
     }
     
-    logger.info('Trade updates sync completed successfully');
+    loga.info('Trade updates sync completed successfully');
   } catch (error) {
-    logger.error('Error during trade updates sync', error as Error);
+    loga.error('Error during trade updates sync', error as Error);
     
     // Update sync status on error
     await supabase

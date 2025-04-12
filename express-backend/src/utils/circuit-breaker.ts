@@ -1,14 +1,14 @@
-import * as Opossum from 'opossum';
-import { createLogger } from './logger';
+import CircuitBreaker, * as Opossum from 'opossum';
+import logger, { createLogger } from './logger';
 import { metrics } from '../monitoring/metrics-manager';
 import { sendAlert } from '../monitoring/alerting-service';
 import { apiCache } from './cache';
 
-const logger = createLogger('circuit-breaker');
+const loga = createLogger('circuit-breaker', logger);
 
 // Default circuit breaker options
 const defaultOptions: Opossum.Options = {
-  failureThreshold: 50,        // Open after 50% of requests fail
+  // failureThreshold: 50,        // Open after 50% of requests fail
   resetTimeout: 30000,         // 30 seconds in open state before testing again
   timeout: 15000,              // 15 second request timeout
   errorThresholdPercentage: 50,// Error threshold percentage
@@ -18,7 +18,7 @@ const defaultOptions: Opossum.Options = {
 };
 
 // Circuit breakers registry
-const breakers: Record<string, Opossum.CircuitBreaker<any>> = {};
+const breakers: any = {};
 
 // Interface for API request functions
 interface ApiRequestFunction<T> {
@@ -32,7 +32,7 @@ export function createCircuitBreaker<T>(
   name: string,
   requestFn: ApiRequestFunction<T>,
   options: Partial<Opossum.Options> = {}
-): Opossum.CircuitBreaker<T> {
+): any {
   if (breakers[name]) {
     return breakers[name];
   }
@@ -43,10 +43,10 @@ export function createCircuitBreaker<T>(
     name
   };
 
-  logger.info(`Creating circuit breaker: ${name}`);
+  loga.info(`Creating circuit breaker: ${name}`);
   
   // Create the circuit breaker
-  const breaker = new Opossum(requestFn, circuitOptions);
+  const breaker = new CircuitBreaker(requestFn, circuitOptions);
   
   // Set up event handlers
   setupCircuitEvents(breaker, name);
@@ -61,12 +61,12 @@ export function createCircuitBreaker<T>(
  * Set up event handlers for circuit breaker
  */
 function setupCircuitEvents(
-  breaker: Opossum.CircuitBreaker<any>,
+  breaker: any,
   name: string
 ): void {
   // Fire when the circuit opens
   breaker.on('open', () => {
-    logger.warn(`Circuit ${name} is open`);
+    loga.warn(`Circuit ${name} is open`);
     
     // Record metric
     metrics.externalApiRequestsTotal.inc({ 
@@ -90,7 +90,7 @@ function setupCircuitEvents(
   
   // Fire when the circuit closes
   breaker.on('close', () => {
-    logger.info(`Circuit ${name} is closed`);
+    loga.info(`Circuit ${name} is closed`);
     
     // Send alert for recovery
     sendAlert({
@@ -103,11 +103,11 @@ function setupCircuitEvents(
   
   // Fire when the circuit is half-open
   breaker.on('halfOpen', () => {
-    logger.info(`Circuit ${name} is half-open, testing the waters`);
+    loga.info(`Circuit ${name} is half-open, testing the waters`);
   });
   
   // Fire on a successful request when the circuit is closed
-  breaker.on('success', (result) => {
+  breaker.on('success', (result:any) => {
     metrics.externalApiRequestsTotal.inc({ 
       api: name,
       endpoint: getEndpointFromResult(result),
@@ -116,8 +116,8 @@ function setupCircuitEvents(
   });
   
   // Fire on a failed request
-  breaker.on('failure', (error) => {
-    logger.error(`Circuit ${name} request failed:`, error);
+  breaker.on('failure', (error:any) => {
+    loga.error(`Circuit ${name} request failed:`, error);
     
     metrics.externalApiRequestsTotal.inc({ 
       api: name,
@@ -127,8 +127,8 @@ function setupCircuitEvents(
   });
   
   // Fire on a timeout
-  breaker.on('timeout', (error) => {
-    logger.warn(`Circuit ${name} request timed out:`, error);
+  breaker.on('timeout', (error:any) => {
+    loga.warn(`Circuit ${name} request timed out:`, error);
     
     metrics.externalApiRequestsTotal.inc({ 
       api: name,
@@ -138,13 +138,13 @@ function setupCircuitEvents(
   });
   
   // Fire when a fallback is executed
-  breaker.on('fallback', (result) => {
-    logger.info(`Circuit ${name} executed fallback`);
+  breaker.on('fallback', (result: any) => {
+    loga.info(`Circuit ${name} executed fallback`);
   });
   
   // Fire when the circuit rejects a request due to being open
   breaker.on('reject', () => {
-    logger.warn(`Circuit ${name} rejected request because it is open`);
+    loga.warn(`Circuit ${name} rejected request because it is open`);
     
     metrics.externalApiRequestsTotal.inc({ 
       api: name,
@@ -180,11 +180,11 @@ export function createCacheFallback<T>(
   return () => {
     const cachedValue = apiCache.get<T>(cacheKey);
     if (cachedValue) {
-      logger.info(`Using cached value for ${cacheKey}`);
+      loga.info(`Using cached value for ${cacheKey}`);
       return cachedValue;
     }
     
-    logger.warn(`No cached value for ${cacheKey}, using default`);
+    loga.warn(`No cached value for ${cacheKey}, using default`);
     return defaultValue;
   };
 }
@@ -192,6 +192,6 @@ export function createCacheFallback<T>(
 /**
  * Get all circuit breakers
  */
-export function getCircuitBreakers(): Record<string, Opossum.CircuitBreaker<any>> {
+export function getCircuitBreakers(): any{
   return { ...breakers };
 }

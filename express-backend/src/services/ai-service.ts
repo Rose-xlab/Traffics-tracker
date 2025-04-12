@@ -1,13 +1,13 @@
 // src/services/ai-service.ts
 import OpenAI from 'openai';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { apiCache } from '../utils/cache';
 import config from '../config';
 import { generateSearchPrompt, generateExplanationPrompt, generateTariffChangePrompt, generateProductCategoryPrompt } from '../utils/prompt-templates';
 import { supabase } from '../utils/database';
 import { metrics } from '../monitoring/metrics-manager';
 
-const logger = createLogger('ai-service');
+const loga = createLogger('ai-service',logger);
 const CACHE_KEY_PREFIX = 'ai';
 
 // Initialize OpenAI client
@@ -56,7 +56,7 @@ async function recordAIUsage(feature: string, tokensUsed: number, requestTime: n
     metrics.apiRequestsTotal.inc({ 
       endpoint: 'openai', 
       method: feature,
-      status: success ? 'success' : 'error'
+      status_code: success ? 'success' : 'error'
     });
     
     metrics.apiRequestDuration.observe({ 
@@ -76,8 +76,8 @@ async function recordAIUsage(feature: string, tokensUsed: number, requestTime: n
           metadata
         });
     }
-  } catch (error) {
-    logger.error(`Error recording AI usage metrics: ${error.message}`, error);
+  } catch (error:any) {
+    loga.error(`Error recording AI usage metrics: ${error.message}`, error);
     // Non-critical error, don't throw
   }
 }
@@ -95,10 +95,10 @@ export async function enhanceSearch(query: string): Promise<{
     
     // Check cache first
     const cacheKey = `${CACHE_KEY_PREFIX}:search:${query.toLowerCase().trim()}`;
-    const cachedResult = apiCache.get(cacheKey);
+    const cachedResult = apiCache.get(cacheKey) as { htsMatches: HTSMatch[]; enhancedQuery: string };
     
     if (cachedResult) {
-      logger.debug(`Cache hit for AI search: ${query}`);
+      loga.debug(`Cache hit for AI search: ${query}`);
       return cachedResult;
     }
     
@@ -127,7 +127,7 @@ export async function enhanceSearch(query: string): Promise<{
       };
     }
     
-    logger.info(`Performing AI-enhanced search for: ${query}`);
+    loga.info(`Performing AI-enhanced search for: ${query}`);
     
     // Generate the search prompt
     const prompt = generateSearchPrompt(query);
@@ -170,7 +170,7 @@ export async function enhanceSearch(query: string): Promise<{
         .from('ai_search_mappings')
         .upsert({
           query: query.trim().toLowerCase(),
-          mapped_hts_codes: result.htsMatches.map(match => match.htsCode),
+          mapped_hts_codes: result.htsMatches.map((match: any) => match.htsCode),
           enhanced_query: result.enhancedQuery,
           mapping_data: result,
           usage_count: 1,
@@ -182,8 +182,8 @@ export async function enhanceSearch(query: string): Promise<{
     }
     
     return result;
-  } catch (error) {
-    logger.error(`Error in AI-enhanced search: ${error.message}`, error);
+  } catch (error:any) {
+    loga.error(`Error in AI-enhanced search: ${error.message}`, error);
     
     // Record error metrics
     const hrDuration = process.hrtime();
@@ -217,7 +217,7 @@ export async function explainTariff(
     const cachedResult = apiCache.get<TariffExplanation>(cacheKey);
     
     if (cachedResult) {
-      logger.debug(`Cache hit for tariff explanation: ${productInfo.htsCode || productInfo.hts_code}`);
+      loga.debug(`Cache hit for tariff explanation: ${productInfo.htsCode || productInfo.hts_code}`);
       return cachedResult;
     }
     
@@ -230,7 +230,7 @@ export async function explainTariff(
       .single();
       
     if (!dbError && storedExplanation && new Date(storedExplanation.expires_at) > new Date()) {
-      logger.debug(`Database cache hit for tariff explanation: ${productInfo.htsCode || productInfo.hts_code}`);
+      loga.debug(`Database cache hit for tariff explanation: ${productInfo.htsCode || productInfo.hts_code}`);
       
       return {
         plainLanguage: storedExplanation.plain_language,
@@ -241,7 +241,7 @@ export async function explainTariff(
       };
     }
     
-    logger.info(`Generating tariff explanation for: ${productInfo.htsCode || productInfo.hts_code}`);
+    loga.info(`Generating tariff explanation for: ${productInfo.htsCode || productInfo.hts_code}`);
     
     // Ensure we have normalized product info format
     const normalizedProduct = normalizeProductInfo(productInfo);
@@ -309,14 +309,14 @@ export async function explainTariff(
         }, {
           onConflict: 'product_id,country_id'
         });
-    } catch (dbError) {
-      logger.error(`Error storing explanation in database: ${dbError.message}`, dbError);
+    } catch (dbError:any) {
+      loga.error(`Error storing explanation in database: ${dbError.message}`, dbError);
       // Non-critical error, continue
     }
     
     return result;
-  } catch (error) {
-    logger.error(`Error generating tariff explanation: ${error.message}`, error);
+  } catch (error:any) {
+    loga.error(`Error generating tariff explanation: ${error.message}`, error);
     
     // Record error metrics
     const hrDuration = process.hrtime();
@@ -365,7 +365,7 @@ export async function explainTariffChange(
     const cachedResult = apiCache.get<string>(cacheKey);
     
     if (cachedResult) {
-      logger.debug(`Cache hit for tariff change explanation: ${productInfo.htsCode || productInfo.hts_code}`);
+      loga.debug(`Cache hit for tariff change explanation: ${productInfo.htsCode || productInfo.hts_code}`);
       return cachedResult;
     }
     
@@ -404,8 +404,8 @@ export async function explainTariffChange(
     apiCache.set(cacheKey, explanation, 3600 * 24); // Cache for 24 hours
     
     return explanation;
-  } catch (error) {
-    logger.error(`Error explaining tariff change: ${error.message}`, error);
+  } catch (error:any) {
+    loga.error(`Error explaining tariff change: ${error.message}`, error);
     
     // Record error metrics
     const hrDuration = process.hrtime();
@@ -437,11 +437,11 @@ export async function categorizeProduct(
     const cachedResult = apiCache.get<ProductCategorization>(cacheKey);
     
     if (cachedResult) {
-      logger.debug(`Cache hit for product categorization: ${htsCode}`);
+      loga.debug(`Cache hit for product categorization: ${htsCode}`);
       return cachedResult;
     }
     
-    logger.info(`Categorizing product with HTS code: ${htsCode}`);
+    loga.info(`Categorizing product with HTS code: ${htsCode}`);
     
     // Generate the prompt
     const prompt = generateProductCategoryPrompt(htsCode, description);
@@ -485,8 +485,8 @@ export async function categorizeProduct(
     apiCache.set(cacheKey, result, 3600 * 24 * 7); // Cache for 7 days
     
     return result;
-  } catch (error) {
-    logger.error(`Error categorizing product: ${error.message}`, error);
+  } catch (error:any) {
+    loga.error(`Error categorizing product: ${error.message}`, error);
     
     // Record error metrics
     const hrDuration = process.hrtime();

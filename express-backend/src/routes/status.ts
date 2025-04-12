@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { supabase } from '../utils/database';
 import { apiCache, cache, referenceCache } from '../utils/cache';
 
 const router = Router();
-const logger = createLogger('status-routes');
+const loga = createLogger('status-routes', logger);
 
 /**
  * Authentication middleware for secure routes
@@ -42,7 +42,7 @@ router.get('/sync', requireAuth, async (req, res) => {
     
     res.json({ data });
   } catch (error) {
-    logger.error('Error fetching sync status', error as Error);
+    loga.error('Error fetching sync status', error as Error);
     res.status(500).json({
       error: 'Failed to fetch sync status',
       details: error instanceof Error ? error.message : undefined
@@ -63,7 +63,7 @@ router.get('/cache', requireAuth, async (req, res) => {
     
     res.json({ data: stats });
   } catch (error) {
-    logger.error('Error fetching cache stats', error as Error);
+    loga.error('Error fetching cache stats', error as Error);
     res.status(500).json({
       error: 'Failed to fetch cache stats',
       details: error instanceof Error ? error.message : undefined
@@ -96,7 +96,7 @@ router.post('/cache/clear', requireAuth, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Error clearing cache', error as Error);
+    loga.error('Error clearing cache', error as Error);
     res.status(500).json({
       error: 'Failed to clear cache',
       details: error instanceof Error ? error.message : undefined
@@ -136,7 +136,7 @@ router.get('/database', requireAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Error fetching database stats', error as Error);
+    loga.error('Error fetching database stats', error as Error);
     res.status(500).json({
       error: 'Failed to fetch database stats',
       details: error instanceof Error ? error.message : undefined

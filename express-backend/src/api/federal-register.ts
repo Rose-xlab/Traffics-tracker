@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { apiCache } from '../utils/cache';
 import { federalRegisterRateLimiter } from '../utils/rate-limiter';
 import config from '../config';
 import { FederalRegisterNotice } from './types';
 
-const logger = createLogger('federal-register-api');
+const loga = createLogger('federal-register-api', logger);
 const CACHE_KEY_PREFIX = 'fr';
 const BASE_URL = config.apis.federalRegister.baseUrl;
 
@@ -17,12 +17,12 @@ export async function getTariffNotices(): Promise<FederalRegisterNotice[]> {
   const cachedData = apiCache.get<FederalRegisterNotice[]>(cacheKey);
   
   if (cachedData) {
-    logger.debug('Cache hit for Federal Register notices');
+    loga.debug('Cache hit for Federal Register notices');
     return cachedData;
   }
 
   try {
-    logger.info('Fetching tariff notices from Federal Register');
+    loga.info('Fetching tariff notices from Federal Register');
     
     // Apply rate limiting
     await federalRegisterRateLimiter.throttle('notices');
@@ -60,7 +60,7 @@ export async function getTariffNotices(): Promise<FederalRegisterNotice[]> {
     apiCache.set(cacheKey, processedNotices, 3600 * 4); // Cache for 4 hours
     return processedNotices;
   } catch (error) {
-    logger.error('Error fetching Federal Register notices', error as Error);
+    loga.error('Error fetching Federal Register notices', error as Error);
     throw error;
   }
 }
@@ -73,12 +73,12 @@ export async function getEffectiveDates(htsCode: string): Promise<FederalRegiste
   const cachedData = apiCache.get<FederalRegisterNotice[]>(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for effective dates ${htsCode}`);
+    loga.debug(`Cache hit for effective dates ${htsCode}`);
     return cachedData;
   }
 
   try {
-    logger.info(`Fetching effective dates for HTS code ${htsCode}`);
+    loga.info(`Fetching effective dates for HTS code ${htsCode}`);
     
     // Apply rate limiting
     await federalRegisterRateLimiter.throttle('dates');

@@ -1,11 +1,11 @@
 import axios from 'axios';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { apiCache } from '../utils/cache';
 import { cbpRateLimiter } from '../utils/rate-limiter';
 import config from '../config';
 import { CBPRuling } from './types';
 
-const logger = createLogger('cbp-api');
+const loga = createLogger('cbp-api', logger);
 const CACHE_KEY_PREFIX = 'cbp';
 const BASE_URL = config.apis.cbp.baseUrl;
 
@@ -17,12 +17,12 @@ export async function getRulings(htsCode: string): Promise<CBPRuling[]> {
   const cachedData = apiCache.get<CBPRuling[]>(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for CBP rulings ${htsCode}`);
+    loga.debug(`Cache hit for CBP rulings ${htsCode}`);
     return cachedData;
   }
 
   try {
-    logger.info(`Fetching CBP rulings for HTS code ${htsCode}`);
+    loga.info(`Fetching CBP rulings for HTS code ${htsCode}`);
     
     // Apply rate limiting
     await cbpRateLimiter.throttle('rulings');
@@ -40,7 +40,7 @@ export async function getRulings(htsCode: string): Promise<CBPRuling[]> {
     apiCache.set(cacheKey, data, 3600 * 12); // Cache for 12 hours
     return data;
   } catch (error) {
-    logger.error(`Error fetching CBP rulings for HTS code ${htsCode}`, error as Error);
+    loga.error(`Error fetching CBP rulings for HTS code ${htsCode}`, error as Error);
     throw error;
   }
 }
@@ -53,12 +53,12 @@ export async function getImplementationGuidance(topic: string): Promise<any> {
   const cachedData = apiCache.get(cacheKey);
   
   if (cachedData) {
-    logger.debug(`Cache hit for implementation guidance on ${topic}`);
+    loga.debug(`Cache hit for implementation guidance on ${topic}`);
     return cachedData;
   }
 
   try {
-    logger.info(`Fetching implementation guidance for ${topic}`);
+    loga.info(`Fetching implementation guidance for ${topic}`);
     
     // Apply rate limiting
     await cbpRateLimiter.throttle('guidance');
@@ -73,7 +73,7 @@ export async function getImplementationGuidance(topic: string): Promise<any> {
     apiCache.set(cacheKey, response.data, 3600 * 24); // Cache for 24 hours
     return response.data;
   } catch (error) {
-    logger.error(`Error fetching implementation guidance for ${topic}`, error as Error);
+    loga.error(`Error fetching implementation guidance for ${topic}`, error as Error);
     throw error;
   }
 }

@@ -1,13 +1,13 @@
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { getTradeAgreements } from '../api/ustr';
 import { updateTariffRates } from '../services/data-aggregator';
 import { supabase } from '../utils/database';
 import { notifyProductWatchers } from '../services/notification-service';
 import config from '../config';
 
-const logger = createLogger('sync-tariffs');
+const loga = createLogger('sync-tariffs', logger);
 
 /**
  * Sync tariff rates for countries and products
@@ -133,7 +133,7 @@ export async function syncTariffs(): Promise<void> {
                 
                 // Notify if rate changed significantly
                 if (prevTotalRate !== undefined && Math.abs(newTotalRate - prevTotalRate) >= 1) {
-                  await notifyProductWatchers({
+                  await notifyProductWatchers.notifyProductWatchers({
                     title: `Tariff Rate Change for ${country.name}`,
                     message: `The tariff rate for ${product.name} imported from ${country.name} has changed from ${prevTotalRate}% to ${newTotalRate}%`,
                     type: 'rate_change',

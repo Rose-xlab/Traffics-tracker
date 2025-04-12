@@ -1,6 +1,6 @@
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { getHtsChapter } from '../api/usitc';
 import { aggregateProductData, findProductsToUpdate } from '../services/data-aggregator';
 import { supabase } from '../utils/database';
@@ -9,7 +9,7 @@ import { sendAlert } from '../monitoring/alerting-service';
 import { updateDataFreshness } from '../monitoring/metrics-middleware';
 import config from '../config';
 
-const logger = createLogger('sync-products');
+const loga = createLogger('sync-products', logger);
 
 /**
  * Sync all products or update existing ones
@@ -18,7 +18,7 @@ export async function syncProducts(fullSync: boolean = false): Promise<void> {
   const queue = new PQueue({ concurrency: config.sync.concurrency });
   
   try {
-    logger.info(`Starting product sync (full sync: ${fullSync})`);
+    loga.info(`Starting product sync (full sync: ${fullSync})`);
     
     // Start timing for metrics
     const startTime = process.hrtime();
@@ -35,7 +35,7 @@ export async function syncProducts(fullSync: boolean = false): Promise<void> {
       .single();
       
     if (syncError) {
-      logger.error('Failed to create sync status record', syncError);
+      loga.error('Failed to create sync status record', syncError);
     }
     
     const syncId = syncRecord?.id;
@@ -83,7 +83,7 @@ export async function syncProducts(fullSync: boolean = false): Promise<void> {
     metrics.jobsTotal.inc({ job_type: 'product-sync', status: 'completed' });
     metrics.jobLastSuccess.set({ job_type: 'product-sync' }, Date.now() / 1000);
     
-    logger.info(`Product sync completed successfully in ${durationSeconds.toFixed(2)} seconds`);
+    loga.info(`Product sync completed successfully in ${durationSeconds.toFixed(2)} seconds`);
     
     // Send success alert
     sendAlert({
@@ -93,7 +93,7 @@ export async function syncProducts(fullSync: boolean = false): Promise<void> {
       component: 'sync-jobs'
     });
   } catch (error) {
-    logger.error('Error during product sync', error as Error);
+    loga.error('Error during product sync', error as Error);
     
     // Record failure metrics
     metrics.jobsTotal.inc({ job_type: 'product-sync', status: 'failed' });
@@ -129,7 +129,7 @@ export async function syncProducts(fullSync: boolean = false): Promise<void> {
  * Perform full sync of all HTS chapters
  */
 async function fullProductSync(queue: PQueue): Promise<void> {
-  logger.info('Starting full product sync');
+  loga.info('Starting full product sync');
   
   let processedChapters = 0;
   let totalChapters = 99; // 1-99 chapters
@@ -141,7 +141,7 @@ async function fullProductSync(queue: PQueue): Promise<void> {
     queue.add(() => 
       pRetry(
         async () => {
-          logger.info(`Processing HTS chapter ${chapterStr}`);
+          loga.info(`Processing HTS chapter ${chapterStr}`);
           
           try {
             const chapterData = await getHtsChapter(chapterStr);
@@ -160,16 +160,16 @@ async function fullProductSync(queue: PQueue): Promise<void> {
             processedChapters++;
             metrics.jobQueueLength.set({ queue_name: 'product-sync' }, queue.size);
             
-            logger.info(`Completed processing HTS chapter ${chapterStr} (${processedChapters}/${totalChapters})`);
+            loga.info(`Completed processing HTS chapter ${chapterStr} (${processedChapters}/${totalChapters})`);
           } catch (error) {
-            logger.error(`Error processing HTS chapter ${chapterStr}`, error as Error);
+            loga.error(`Error processing HTS chapter ${chapterStr}`, error as Error);
             throw error;
           }
         },
         { 
           retries: config.sync.retries,
           onFailedAttempt: (error) => {
-            logger.warn(`Attempt failed for chapter ${chapterStr}: ${error.message}, retrying...`);
+            loga.warn(`Attempt failed for chapter ${chapterStr}: ${error.message}, retrying...`);
           }
         }
       )
@@ -178,24 +178,24 @@ async function fullProductSync(queue: PQueue): Promise<void> {
   
   // Wait for all queue items to complete
   await queue.onIdle();
-  logger.info('Full product sync completed');
+  loga.info('Full product sync completed');
 }
 
 /**
  * Update only products that need updating
  */
 async function incrementalProductSync(queue: PQueue): Promise<void> {
-  logger.info('Starting incremental product sync');
+  loga.info('Starting incremental product sync');
   
   // Find products that need updating
   const htsCodes = await findProductsToUpdate(config.sync.batchSize);
   
   if (htsCodes.length === 0) {
-    logger.info('No products need updating');
+    loga.info('No products need updating');
     return;
   }
   
-  logger.info(`Found ${htsCodes.length} products to update`);
+  loga.info(`Found ${htsCodes.length} products to update`);
   
   // Get product categories
   const { data: products, error } = await supabase
@@ -230,16 +230,16 @@ async function incrementalProductSync(queue: PQueue): Promise<void> {
             processedProducts++;
             metrics.jobQueueLength.set({ queue_name: 'product-sync' }, queue.size);
             
-            logger.debug(`Updated product ${htsCode} (${processedProducts}/${totalProducts})`);
+            loga.debug(`Updated product ${htsCode} (${processedProducts}/${totalProducts})`);
           } catch (error) {
-            logger.error(`Error updating product ${htsCode}`, error as Error);
+            loga.error(`Error updating product ${htsCode}`, error as Error);
             throw error;
           }
         },
         { 
           retries: config.sync.retries,
           onFailedAttempt: (error) => {
-            logger.warn(`Attempt failed for product ${htsCode}: ${error.message}, retrying...`);
+            loga.warn(`Attempt failed for product ${htsCode}: ${error.message}, retrying...`);
           }
         }
       )
@@ -248,5 +248,5 @@ async function incrementalProductSync(queue: PQueue): Promise<void> {
   
   // Wait for all queue items to complete
   await queue.onIdle();
-  logger.info(`Incremental product sync completed, updated ${processedProducts} products`);
+  loga.info(`Incremental product sync completed, updated ${processedProducts} products`);
 }

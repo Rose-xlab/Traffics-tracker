@@ -3,6 +3,7 @@ import { BullAdapter } from '@bull-board/api/bullAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { Express } from 'express';
 import { createLogger } from '../utils/logger';
+import logger from '../utils/logger';
 import { 
   productSyncQueue, 
   tariffSyncQueue, 
@@ -10,7 +11,7 @@ import {
   cleanupQueue 
 } from '../queue/job-queues';
 
-const logger = createLogger('bull-board');
+const loga = createLogger('bull-board',logger);
 
 /**
  * Create Bull Board UI for job monitoring
@@ -22,7 +23,7 @@ export function createBullBoard(app: Express): void {
   }
   
   try {
-    logger.info('Setting up Bull Board admin UI');
+   loga.info('Setting up Bull Board admin UI');
     
     // Create Express adapter
     const serverAdapter = new ExpressAdapter();
@@ -56,8 +57,8 @@ export function createBullBoard(app: Express): void {
     // Mount Bull Board UI with authentication
     app.use('/admin/queues', basicAuth, serverAdapter.getRouter());
     
-    logger.info('Bull Board admin UI mounted at /admin/queues');
+    loga.info('Bull Board admin UI mounted at /admin/queues');
   } catch (error) {
-    logger.error('Failed to setup Bull Board admin UI', error);
+    loga.error('Failed to setup Bull Board admin UI', error as any);
   }
 }

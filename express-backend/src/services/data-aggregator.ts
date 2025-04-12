@@ -1,4 +1,4 @@
-import { createLogger } from '../utils/logger';
+import logger, { createLogger } from '../utils/logger';
 import { getGeneralRates } from '../api/usitc';
 import { getSection301Tariffs, getExclusions } from '../api/ustr';
 import { getRulings } from '../api/cbp';
@@ -13,7 +13,7 @@ import {
 } from './data-processor';
 import { supabase } from '../utils/database';
 
-const logger = createLogger('data-aggregator');
+const loga = createLogger('data-aggregator', logger);
 
 /**
  * Aggregate data for a single HTS code from all sources and store in database
@@ -23,7 +23,7 @@ export async function aggregateProductData(
   category: string
 ): Promise<void> {
   try {
-    logger.info(`Starting data aggregation for HTS code ${htsCode}`);
+    loga.info(`Starting data aggregation for HTS code ${htsCode}`);
     
     // Step 1: Fetch data from all sources in parallel
     const [
@@ -40,7 +40,7 @@ export async function aggregateProductData(
       getEffectiveDates(htsCode)
     ]);
     
-    logger.debug(`Fetched data for ${htsCode} from all sources`);
+    loga.debug(`Fetched data for ${htsCode} from all sources`);
     
     // Step 2: Filter section301 tariffs for this HTS code
     const relevantTariffs = section301Tariffs.filter(
@@ -65,9 +65,9 @@ export async function aggregateProductData(
     // Step 5: Update total rate
     await updateTotalRate(productId);
     
-    logger.info(`Successfully aggregated data for HTS code ${htsCode}`);
+    loga.info(`Successfully aggregated data for HTS code ${htsCode}`);
   } catch (error) {
-    logger.error(`Error aggregating data for HTS code ${htsCode}`, error as Error);
+    loga.error(`Error aggregating data for HTS code ${htsCode}`, error as Error);
     throw error;
   }
 }
@@ -92,7 +92,7 @@ export async function findProductsToUpdate(limit: number = 100): Promise<string[
     
     return data.map(product => product.hts_code);
   } catch (error) {
-    logger.error('Error finding products to update', error as Error);
+    loga.error('Error finding products to update', error as Error);
     throw error;
   }
 }
@@ -108,7 +108,7 @@ export async function updateTariffRates(
   effectiveDate: string
 ): Promise<void> {
   try {
-    logger.info(`Updating tariff rates for product ${productId}, country ${countryId}`);
+    loga.info(`Updating tariff rates for product ${productId}, country ${countryId}`);
     
     // Calculate total rate
     let totalRate = baseRate;
@@ -133,9 +133,9 @@ export async function updateTariffRates(
       
     if (error) throw error;
     
-    logger.info(`Successfully updated tariff rates for product ${productId}, country ${countryId}`);
+    loga.info(`Successfully updated tariff rates for product ${productId}, country ${countryId}`);
   } catch (error) {
-    logger.error(`Error updating tariff rates for product ${productId}, country ${countryId}`, error as Error);
+    loga.error(`Error updating tariff rates for product ${productId}, country ${countryId}`, error as Error);
     throw error;
   }
 }
@@ -145,7 +145,7 @@ export async function updateTariffRates(
  */
 export async function processTradeUpdates(): Promise<void> {
   try {
-    logger.info('Processing trade updates');
+    loga.info('Processing trade updates');
     
     const notices = await getEffectiveDates('tariff');
     
@@ -185,12 +185,12 @@ export async function processTradeUpdates(): Promise<void> {
         
       if (error) throw error;
       
-      logger.info(`Processed trade update: ${notice.document_number}`);
+      loga.info(`Processed trade update: ${notice.document_number}`);
     }
     
-    logger.info('Successfully processed all trade updates');
+    loga.info('Successfully processed all trade updates');
   } catch (error) {
-    logger.error('Error processing trade updates', error as Error);
+    loga.error('Error processing trade updates', error as Error);
     throw error;
   }
 }
